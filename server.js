@@ -1,5 +1,4 @@
-﻿
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const app = express();
 const contactRoutes = require('./backend/routes/contacts');
@@ -8,10 +7,29 @@ const { validateContact, validateUpdate } = require('./backend/middleware/valida
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const bodyParser = require('body-parser');
+const cors = require('cors');
+
 const port = process.env.PORT || 8080;
 
-// Database connection - Use your custom module
+// Database connection - Use custom module
 const { connectDB } = require('./backend/data/database');
+
+// ==========  ========== //
+// Enable CORS for all routes
+app.use(cors());
+
+// HTTPS redirect middleware for production
+app.use((req, res, next) => {
+  if (req.header('x-forwarded-proto') !== 'https' && process.env.NODE_ENV === 'production') {
+    res.redirect(`https://${req.header('host')}${req.url}`);
+  } else {
+    next();
+  }
+});
+
+// Middleware 
+app.use(express.json());  
+// ==========  ========== //
 
 // Swagger configuration
 const swaggerOptions = {
@@ -28,11 +46,18 @@ const swaggerOptions = {
         description: 'Development server',
       },
       {
-        url: 'https://cse341-wj33.onrender.com/contacts', 
+        url: 'https://cse341-wj33.onrender.com', 
         description: 'Production server',
       },
     ],
     components: {
+      securitySchemes: { 
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'Authorization'
+        }
+      },
       schemas: {
         Contact: {
           type: 'object',
@@ -104,24 +129,32 @@ const swaggerOptions = {
           }
         }
       }
-    }
+    },
+    security: [{ // Global security requirement
+      ApiKeyAuth: []
+    }]
   },
   apis: ['./backend/routes/contacts.js']
 };
+
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Middleware
-app.use(express.json());
-//app.use(bodyParser.json());
 // Routes
 app.use('/contacts', contactRoutes);
-//app.use(bodyparser.json());
-app.use(express.json());
+
 app.get('/', (req, res) => {
   res.send('Contacts API is running!');
 });
 
+//  health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'API is healthy',
+    timestamp: new Date().toISOString()
+  });
+});
 
 const startServer = async () => {
   try {
@@ -129,6 +162,7 @@ const startServer = async () => {
     app.listen(port, () => {
       console.log(`Server running at http://localhost:${port}`);
       console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+      console.log(`Health check: http://localhost:${port}/health`);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

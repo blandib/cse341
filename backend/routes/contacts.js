@@ -2,9 +2,13 @@
 const router = express.Router();
 const contactsController = require('../controllers/contacts');
 const { getDB } = require('../data/database');
-const contast = require('../models/contact');
+//const contact = require('../models/contact'); 
 const mongodb = require('mongodb');
 const { validateContact, validateUpdate } = require('../middleware/validation');
+
+
+
+// ========== ROUTE HANDLERS ========== //
 // Get all contacts
 router.get('/', async (req, res) => {
   try {
@@ -32,6 +36,17 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// POST create new contact
+router.post('/', validateContact, async (req, res) => {
+  try {
+    const db = getDB();
+    const newContact = await contactsController.createContact(db, req.body);
+    res.status(201).json(newContact);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 // PUT update contact
 router.put('/:id', validateUpdate, async (req, res) => {
   try {
@@ -43,7 +58,8 @@ router.put('/:id', validateUpdate, async (req, res) => {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
 
-    const updatedContact = await Contact.updateContact(id, updateData);
+    const db = getDB();
+    const updatedContact = await contactsController.updateContact(db, id, updateData);
     
     if (!updatedContact) {
       return res.status(404).json({ error: 'Contact not found' });
@@ -66,7 +82,8 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
 
-    const result = await Contact.deleteContact(id);
+    const db = getDB();
+    const result = await contactsController.deleteContact(db, id);
     
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Contact not found' });
@@ -82,6 +99,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// ========== SWAGGER DOCUMENTATION ========== //
 /**
  * @swagger
  * tags:
@@ -111,9 +129,6 @@ router.delete('/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/', async (req, res) => {
-  // Your existing get all contacts implementation
-});
 
 /**
  * @swagger
@@ -147,9 +162,6 @@ router.get('/', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/', validateContact, async (req, res) => {
-  // Your existing create contact implementation
-});
 
 /**
  * @swagger
@@ -190,9 +202,6 @@ router.post('/', validateContact, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/:id', async (req, res) => {
-  // Your existing get contact by ID implementation
-});
 
 /**
  * @swagger
@@ -239,9 +248,6 @@ router.get('/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/:id', validateUpdate, async (req, res) => {
-  // Your existing update contact implementation
-});
 
 /**
  * @swagger
@@ -290,10 +296,6 @@ router.put('/:id', validateUpdate, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete('/:id', async (req, res) => {
-  // Your existing delete contact implementation
-});
-
-
 
 module.exports = router;
+ 
