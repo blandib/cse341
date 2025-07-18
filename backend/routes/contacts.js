@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const router = express.Router();
-const contactsController = require('../controllers/contacts');
+//const contactsController = require('../controllers/contacts');
+const contactsController = require('../controllers/contacts.js');
 const { getDB } = require('../data/database');
 //const contact = require('../models/contact'); 
 const mongodb = require('mongodb');
